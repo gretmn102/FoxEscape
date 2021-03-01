@@ -159,7 +159,7 @@ let moveDuck (x, y) =
 
 open Browser
 open Browser.Dom
-
+let maxSpriteSize = 80.
 let start (duckImg:HTMLImageElement) (foxImg:HTMLImageElement) (canvas:HTMLCanvasElement) =
     canvas.width <- float width
     canvas.height <- float height
@@ -174,19 +174,25 @@ let start (duckImg:HTMLImageElement) (foxImg:HTMLImageElement) (canvas:HTMLCanva
     canvas.onmousedown <- fun _ -> isMouseButtonDown <- true
     canvas.onmouseup <- fun _ -> isMouseButtonDown <- false
 
-    let w, h = duckImg.width / 7., duckImg.height / 7.
-    let duckSprite = document.createElement "canvas" :?> Types.HTMLCanvasElement
-    duckSprite.width <- w
-    duckSprite.height <- h
-    let ctx2 = duckSprite.getContext_2d()
-    ctx2.drawImage(U3.Case1 duckImg, 0., 0., w, h)
+    let f (img:HTMLImageElement) =
+        let w, h = img.width, img.height
+        let ratio =
+            if w > h then
+                w / maxSpriteSize
+            else
+                h / maxSpriteSize
+        let w, h = w / ratio, h / ratio
 
-    let w, h = foxImg.width / 6., foxImg.height / 6.
-    let foxSprite = document.createElement "canvas" :?> Types.HTMLCanvasElement
-    foxSprite.width <- w
-    foxSprite.height <- h
-    let ctx2 = foxSprite.getContext_2d()
-    ctx2.drawImage(U3.Case1 foxImg, 0., 0., w, h)
+        let sprite = document.createElement "canvas" :?> Types.HTMLCanvasElement
+        sprite.width <- w
+        sprite.height <- h
+        let ctx2 = sprite.getContext_2d()
+        ctx2.drawImage(U3.Case1 img, 0., 0., w, h)
+
+        sprite
+
+    let duckSprite = f duckImg
+    let foxSprite = f foxImg
 
     {|
         Update = fun () ->
