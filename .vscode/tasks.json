@@ -1,0 +1,23 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "npm",
+			"script": "start",
+			"problemMatcher": [],
+			"label": "npm: start",
+			"detail": "webpack-dev-server"
+		},
+		{
+			"type": "npm",
+			"script": "build",
+			"problemMatcher": [
+				"$fable-webpack"
+			],
+			"group": "build",
+			"label": "npm: build",
+			"detail": "webpack --mode production",
+			"isBackground": true
+		}
+	]
+}

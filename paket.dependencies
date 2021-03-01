@@ -1,0 +1,18 @@
+source https://nuget.org/api/v2
+storage:none
+
+nuget Fable.Browser.Navigator
+nuget Fable.Core
+nuget Fable.Elmish
+nuget Fable.Elmish.React
+nuget Fable.FontAwesome.Free
+nuget Fable.Promise
+nuget Fable.Fetch
+nuget Fable.Browser.Dom
+nuget Fable.React
+nuget Fable.SimpleHttp
+nuget Feliz
+nuget Fulma
+nuget Fulma.Extensions.Wikiki.Checkradio
+nuget Thoth.Json
+nuget Zanaptak.TypedCssClasses
