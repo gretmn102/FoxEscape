@@ -1,14 +1,14 @@
 module FoxEscape
 
-let width = 800
-let height = 650
-let radius = 300.0
+let mutable width = 800
+let mutable height = 650
+let mutable radius = 300.0
 let mutable fox = 0.0
 let mutable duckX = 0.1
 let mutable duckY = 0.0
-let foxSpeed = 1.0
+let duckSpeed = 1.0
 let foxSpeeds = [3.5; 4.0; 4.2; 4.4; 4.6]
-let foxSpeedIdx = 0
+let foxSpeedIdx = 1
 let speedMult = 3.0
 
 type IsWin = bool
@@ -41,16 +41,16 @@ module CanvasRenderingContext2DExt =
 open Fable.Core
 let rgb (r:byte, g:byte, b:byte) = U3.Case1 (sprintf "rgb(%d, %d, %d)" r g b)
 let clear (ctx:CanvasRenderingContext2D) =
-    let radius_mult = foxSpeed / foxSpeeds.[foxSpeedIdx]
+    let radius_mult = duckSpeed / foxSpeeds.[foxSpeedIdx]
 
     ctx.clearRect(0., 0., float width, float height);
 
     ctx
     |> CanvasRenderingContext2DExt.circle (float width/2., float height/2.) (radius * 1.0) 0. (Some (U3.Case1 "green")) None
     // ctx
-    // |> CanvasRenderingContext2D.circle (float width/2., float height/2.) (radius*radius_mult) 1. (Some(rgb (200uy, 200uy, 200uy))) None
+    // |> CanvasRenderingContext2DExt.circle (float width/2., float height/2.) (radius*radius_mult) 1. (Some(rgb (200uy, 200uy, 200uy))) None
 
-let maxSpriteSize = 80.
+let maxSpriteSize = 60.
 
 open Browser
 open Browser.Dom
@@ -200,17 +200,22 @@ let test () =
 let moveDuck (x, y) =
     let dx, dy = x - duckX, y - duckY
     let mag = sqrt (dx*dx + dy*dy)
-    if mag <= foxSpeed * speedMult then
+    if mag <= duckSpeed * speedMult then
         duckX <- x
         duckY <- y
     else
-        duckX <- duckX + foxSpeed * speedMult * dx/mag
-        duckY <- duckY + foxSpeed * speedMult * dy/mag
+        duckX <- duckX + duckSpeed * speedMult * dx/mag
+        duckY <- duckY + duckSpeed * speedMult * dy/mag
 
 
 let start (canvas:HTMLCanvasElement) =
-    canvas.width <- float width
-    canvas.height <- float height
+    width <- int canvas.width
+    height <- int canvas.height
+    radius <-
+        if canvas.width > canvas.height then
+            float canvas.width / 2. - (maxSpriteSize / 2.)
+        else
+            float canvas.height / 2. - (maxSpriteSize / 2.)
 
     let ctx = canvas.getContext_2d()
     let mutable mouseX, mouseY = 0., 0.

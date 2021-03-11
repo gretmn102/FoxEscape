@@ -156,9 +156,9 @@ let containerBox (state : State) (dispatch : Msg -> unit) =
             ] [
                 Html.canvas [
                     prop.style [
-                        Feliz.style.border(1, borderStyle.solid, "red")
+                        Feliz.style.border(1, borderStyle.solid, "gray")
                     ]
-                    let w, h = 556 - 10, 264 - 10
+                    let w, h = 556 - 10, 556 - 10 //264 - 10
                     prop.width w
                     prop.height h
 
