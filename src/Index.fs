@@ -219,13 +219,17 @@ let containerBox (state : State) (dispatch : Msg -> unit) =
 let navBrand =
     Navbar.Brand.div [] [
         Navbar.Item.a [
-            Navbar.Item.Props [ Href "https://safe-stack.github.io/" ]
+            Navbar.Item.Props [ Href "https://gretmn102.github.io/" ]
             Navbar.Item.IsActive true
         ] [
-            img [
-                Src "/fable.ico"
-                Alt "Logo"
-            ]
+            Fa.i [ Fa.Solid.Home ] []
+        ]
+
+        Navbar.Item.a [
+            Navbar.Item.Props [ Href "https://github.com/gretmn102/FoxEscape" ]
+            Navbar.Item.IsActive true
+        ] [
+            Fa.i [ Fa.Brand.Github ] []
         ]
     ]
 
