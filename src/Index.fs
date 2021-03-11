@@ -18,6 +18,7 @@ type ImgState =
         ImageSrc: string
 
         Img:Deferred<Img>
+        IsRounded: bool
     }
 
 type State =
@@ -28,6 +29,8 @@ type State =
 type Msg =
     | UpdateFoxState of Img
     | UpdateDuckState of Img
+    | SetFoxRounded of bool
+    | SetDuckRounded of bool
     | SetFoxImgState of ImgState
     | SetDuckImgState of ImgState
 
@@ -37,6 +40,7 @@ let init () =
             InputImageSrc = ""
             ImageSrc = ""
             Img = HasNotStartedYet
+            IsRounded = false
         }
     let state =
         {
@@ -53,6 +57,10 @@ let update (msg: Msg) (state: State) =
                 FoxImgState =
                     { state.FoxImgState with
                         Img = Resolved img } }
+        match img with
+        | Ok img ->
+            FoxEscape.updateFoxSprite state.FoxImgState.IsRounded img
+        | _ -> ()
         state, Cmd.none
     | UpdateDuckState img ->
         let state =
@@ -60,11 +68,38 @@ let update (msg: Msg) (state: State) =
                 DuckImgState =
                     { state.DuckImgState with
                         Img = Resolved img } }
+        match img with
+        | Ok img ->
+            FoxEscape.updateDuckSprite state.DuckImgState.IsRounded img
+        | _ -> ()
+        state, Cmd.none
+    | SetDuckRounded isRounded ->
+        let state =
+            { state with
+                DuckImgState =
+                    { state.DuckImgState with
+                        IsRounded = isRounded } }
+        match state.DuckImgState.Img with
+        | Resolved (Ok img) ->
+            FoxEscape.updateDuckSprite state.DuckImgState.IsRounded img
+        | _ -> ()
+        state, Cmd.none
+    | SetFoxRounded isRounded ->
+        let state =
+            { state with
+                FoxImgState =
+                    { state.FoxImgState with
+                        IsRounded = isRounded } }
+        match state.FoxImgState.Img with
+        | Resolved (Ok img) ->
+            FoxEscape.updateFoxSprite state.FoxImgState.IsRounded img
+        | _ -> ()
         state, Cmd.none
     | SetFoxImgState img ->
         let state =
             { state with
                 FoxImgState = img }
+
         state, Cmd.none
     | SetDuckImgState img ->
         let state =
@@ -76,6 +111,7 @@ open Fable.React
 open Fable.React.Props
 open Fulma
 open Fable.FontAwesome
+open Fulma.Extensions.Wikiki
 
 let spinner =
     div [ Class ("block " + Fa.Classes.Size.Fa3x) ]
@@ -118,18 +154,6 @@ let containerBox (state : State) (dispatch : Msg -> unit) =
         Columns.columns [] [
             Column.column [
             ] [
-                let duckSprite =
-                    match state.DuckImgState.Img with
-                    | Resolved (Ok duckSprite) ->
-                        Some duckSprite
-                    | _ -> None
-
-                let foxSprite =
-                    match state.FoxImgState.Img with
-                    | Resolved (Ok foxSprite) ->
-                        Some foxSprite
-                    | _ -> None
-
                 Html.canvas [
                     prop.style [
                         Feliz.style.border(1, borderStyle.solid, "red")
@@ -144,7 +168,7 @@ let containerBox (state : State) (dispatch : Msg -> unit) =
                         else
                             let canvas = canvas :?> Types.HTMLCanvasElement
 
-                            let x = FoxEscape.start duckSprite foxSprite canvas
+                            let x = FoxEscape.start canvas
                             mainloop.setUpdate (fun _ -> x.Update ()) |> ignore
                             mainloop.setDraw (fun _ -> x.Draw ()) |> ignore
                             mainloop.setEnd (fun fps panic ->
@@ -159,57 +183,70 @@ let containerBox (state : State) (dispatch : Msg -> unit) =
             ]
             Column.column [
             ] [
-                let f description state cmd =
-                    let isError = state.Img = Resolved (Error ())
-                    Field.div [] [
-                        Label.label [] [ str description ]
-                        Control.div [] [
-                            Field.div [ Field.HasAddons ] [
-                                Control.p [
-                                    Control.IsExpanded
-                                    if isError then
-                                        Control.HasIconRight
-                                ] [
-                                    Input.input [
+                let f description state cmd setRounded =
+                    Panel.panel [] [
+                        Field.div [] [
+                            let isError = state.Img = Resolved (Error ())
+
+                            Label.label [] [ str description ]
+                            Control.div [] [
+                                Field.div [ Field.HasAddons ] [
+                                    Control.p [
+                                        Control.IsExpanded
                                         if isError then
-                                            Input.Color IsDanger
-                                        Input.Placeholder description
-                                        Input.Value state.InputImageSrc
-                                        Input.OnChange (fun e ->
-                                            { state with
-                                                InputImageSrc = e.Value }
-                                            |> cmd
-                                            |> dispatch
-                                        )
-                                    ]
-                                    if isError then
-                                        Icon.icon [ Icon.Size IsSmall; Icon.IsRight ]
-                                            [ Fa.i [ Fa.Solid.ExclamationTriangle ] [] ]
-                                ]
-                                Control.p [] [
-                                    Button.button [
-                                        Button.Disabled (state.ImageSrc = state.InputImageSrc)
-                                        Button.IsLoading (state.Img = InProgress)
-                                        Button.OnClick (fun e ->
-                                            { state with
-                                                ImageSrc = state.InputImageSrc
-                                                Img = InProgress }
-                                            |> cmd
-                                            |> dispatch
-                                        )
+                                            Control.HasIconRight
                                     ] [
-                                        Fa.i [ Fa.Solid.Check ] []
+                                        Input.input [
+                                            if isError then
+                                                Input.Color IsDanger
+                                            Input.Placeholder description
+                                            Input.Value state.InputImageSrc
+                                            Input.OnChange (fun e ->
+                                                { state with
+                                                    InputImageSrc = e.Value }
+                                                |> cmd
+                                                |> dispatch
+                                            )
+                                        ]
+                                        if isError then
+                                            Icon.icon [ Icon.Size IsSmall; Icon.IsRight ]
+                                                [ Fa.i [ Fa.Solid.ExclamationTriangle ] [] ]
+                                    ]
+                                    Control.p [] [
+                                        Button.button [
+                                            Button.Disabled (state.ImageSrc = state.InputImageSrc)
+                                            Button.IsLoading (state.Img = InProgress)
+                                            Button.OnClick (fun e ->
+                                                { state with
+                                                    ImageSrc = state.InputImageSrc
+                                                    Img = InProgress }
+                                                |> cmd
+                                                |> dispatch
+                                            )
+                                        ] [
+                                            Fa.i [ Fa.Solid.Check ] []
+                                        ]
                                     ]
                                 ]
                             ]
+                            if isError then
+                                Help.help [ Help.Color IsDanger ]
+                                    [ str "Something wrong with this image" ]
                         ]
-                        if isError then
-                            Help.help [ Help.Color IsDanger ]
-                                [ str "Something wrong with this image" ]
-                    ]
 
-                f "Url for the fox image" state.FoxImgState SetFoxImgState
-                f "Url for the duck image" state.DuckImgState SetDuckImgState
+                        Checkradio.checkbox [
+                            Checkradio.Id description
+                            Checkradio.OnChange (fun v ->
+                                v.Checked
+                                |> setRounded
+                                |> dispatch
+                            )
+                        ] [
+                            str "Round image"
+                        ]
+                    ]
+                f "Url for the fox image" state.FoxImgState SetFoxImgState SetFoxRounded
+                f "Url for the duck image" state.DuckImgState SetDuckImgState SetDuckRounded
             ]
         ]
     ]

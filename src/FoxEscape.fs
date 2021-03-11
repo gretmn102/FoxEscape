@@ -22,7 +22,7 @@ let restart () =
 
 open Browser.Types
 
-module CanvasRenderingContext2D =
+module CanvasRenderingContext2DExt =
     let circle (x, y) r lineWidth strokeStyle fillStyle (ctx:CanvasRenderingContext2D) =
         ctx.beginPath()
         ctx.lineWidth <- lineWidth
@@ -46,12 +46,57 @@ let clear (ctx:CanvasRenderingContext2D) =
     ctx.clearRect(0., 0., float width, float height);
 
     ctx
-    |> CanvasRenderingContext2D.circle (float width/2., float height/2.) (radius * 1.0) 0. (Some (U3.Case1 "green")) None
+    |> CanvasRenderingContext2DExt.circle (float width/2., float height/2.) (radius * 1.0) 0. (Some (U3.Case1 "green")) None
     // ctx
     // |> CanvasRenderingContext2D.circle (float width/2., float height/2.) (radius*radius_mult) 1. (Some(rgb (200uy, 200uy, 200uy))) None
 
 let maxSpriteSize = 80.
-let redraw (duckSprite:HTMLCanvasElement option) (foxSprite:HTMLCanvasElement option) ctx =
+
+open Browser
+open Browser.Dom
+
+let makeSprite isRounded (img:HTMLImageElement) =
+    let w, h = img.width, img.height
+    let ratio =
+        if w > h then
+            w / maxSpriteSize
+        else
+            h / maxSpriteSize
+    let w, h = w / ratio, h / ratio
+
+    let sprite = document.createElement "canvas" :?> Types.HTMLCanvasElement
+    sprite.width <- w
+    sprite.height <- h
+    let ctx = sprite.getContext_2d()
+
+    let x, y = 0., 0.
+    if isRounded then
+        ctx.save()
+
+        let w' = w / 2.
+        let h' = h / 2.
+        ctx.beginPath()
+        ctx.arc(x + w', y + h', w', h', 2. * Fable.Core.JS.Math.PI , true)
+        ctx.closePath()
+
+        ctx.clip()
+        ctx.drawImage(U3.Case1 img, 0., 0., w, h)
+
+        ctx.restore()
+    else
+        ctx.drawImage(U3.Case1 img, 0., 0., w, h)
+
+    sprite
+
+
+let mutable duckSprite = None
+let updateDuckSprite isRounded duckImage =
+    duckSprite <- Some (makeSprite isRounded duckImage)
+let mutable foxSprite = None
+let updateFoxSprite isRounded foxImage =
+    foxSprite <- Some (makeSprite isRounded foxImage)
+
+let redraw ctx =
     clear ctx
 
     match duckSprite with
@@ -62,7 +107,7 @@ let redraw (duckSprite:HTMLCanvasElement option) (foxSprite:HTMLCanvasElement op
     | None ->
         let duckr = maxSpriteSize / 2.
         ctx
-        |> CanvasRenderingContext2D.circle
+        |> CanvasRenderingContext2DExt.circle
             (float width/2. + duckX, float height/2. + duckY)
             duckr
             1.
@@ -77,7 +122,7 @@ let redraw (duckSprite:HTMLCanvasElement option) (foxSprite:HTMLCanvasElement op
     | None ->
         let foxr = maxSpriteSize / 2.
         ctx
-        |> CanvasRenderingContext2D.circle
+        |> CanvasRenderingContext2DExt.circle
             (float width/2. + radius * cos fox, float height/2. + radius * sin fox)
             foxr
             1.
@@ -101,7 +146,6 @@ let redraw (duckSprite:HTMLCanvasElement option) (foxSprite:HTMLCanvasElement op
             ctx.fillText(str, centerX - m.width / 2.0, centerY)
     | None -> ()
 
-open Fable.Core.JS
 
 // Задана произвольная точка и окружность через центр и радиус. Прямая проходит через центр окружности и точку. Нужно найти пересечение окружности и прямой... два пересечения.
 // Из этого:
@@ -163,10 +207,8 @@ let moveDuck (x, y) =
         duckX <- duckX + foxSpeed * speedMult * dx/mag
         duckY <- duckY + foxSpeed * speedMult * dy/mag
 
-open Browser
-open Browser.Dom
 
-let start (duckImg:HTMLImageElement option) (foxImg:HTMLImageElement option) (canvas:HTMLCanvasElement) =
+let start (canvas:HTMLCanvasElement) =
     canvas.width <- float width
     canvas.height <- float height
 
@@ -179,26 +221,6 @@ let start (duckImg:HTMLImageElement option) (foxImg:HTMLImageElement option) (ca
 
     canvas.onmousedown <- fun _ -> isMouseButtonDown <- true
     canvas.onmouseup <- fun _ -> isMouseButtonDown <- false
-
-    let f (img:HTMLImageElement) =
-        let w, h = img.width, img.height
-        let ratio =
-            if w > h then
-                w / maxSpriteSize
-            else
-                h / maxSpriteSize
-        let w, h = w / ratio, h / ratio
-
-        let sprite = document.createElement "canvas" :?> Types.HTMLCanvasElement
-        sprite.width <- w
-        sprite.height <- h
-        let ctx2 = sprite.getContext_2d()
-        ctx2.drawImage(U3.Case1 img, 0., 0., w, h)
-
-        sprite
-
-    let duckSprite = Option.map f duckImg
-    let foxSprite = Option.map f foxImg
 
     {|
         Update = fun () ->
@@ -219,5 +241,5 @@ let start (duckImg:HTMLImageElement option) (foxImg:HTMLImageElement option) (ca
                 fox <- updateFox radius speedMult (duckX, duckY) foxSpeeds.[foxSpeedIdx] fox
 
         Draw = fun () ->
-            redraw duckSprite foxSprite ctx
+            redraw ctx
     |}
