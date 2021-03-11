@@ -4,20 +4,20 @@ let width = 800
 let height = 650
 let radius = 300.0
 let mutable fox = 0.0
-let mutable duckx = 0.1
-let mutable ducky = 0.0
-let bspeed = 1.0
-let gspeeds = [3.5; 4.0; 4.2; 4.4; 4.6]
-let gspeed_ix = 0
-let speed_mult = 3.0
+let mutable duckX = 0.1
+let mutable duckY = 0.0
+let foxSpeed = 1.0
+let foxSpeeds = [3.5; 4.0; 4.2; 4.4; 4.6]
+let foxSpeedIdx = 0
+let speedMult = 3.0
 
 type IsWin = bool
 let mutable gameOver : IsWin option = None
 
 let restart () =
     fox <- 0.0
-    duckx <- 0.1
-    ducky <- 0.0
+    duckX <- 0.1
+    duckY <- 0.0
     gameOver <- None
 
 open Browser.Types
@@ -41,7 +41,7 @@ module CanvasRenderingContext2D =
 open Fable.Core
 let rgb (r:byte, g:byte, b:byte) = U3.Case1 (sprintf "rgb(%d, %d, %d)" r g b)
 let clear (ctx:CanvasRenderingContext2D) =
-    let radius_mult = bspeed / gspeeds.[gspeed_ix]
+    let radius_mult = foxSpeed / foxSpeeds.[foxSpeedIdx]
 
     ctx.clearRect(0., 0., float width, float height);
 
@@ -54,8 +54,8 @@ let redraw (duckSprite:HTMLCanvasElement) (foxSprite:HTMLCanvasElement) ctx =
     clear ctx
 
     ctx.drawImage(U3.Case2 duckSprite,
-                  float width/2. + duckx - duckSprite.width / 2.,
-                  float height/2. + ducky - duckSprite.height / 2.)
+                  float width/2. + duckX - duckSprite.width / 2.,
+                  float height/2. + duckY - duckSprite.height / 2.)
 
     ctx.drawImage(U3.Case2 foxSprite,
                   float width/2. + radius * cos fox - foxSprite.width / 2.,
@@ -113,49 +113,49 @@ open Fable.Core.JS
 // Дает одно единственное решение: `t = [arctan(a__x/a__y)]`!
 // Отлично, что дальше?
 
-let updateFox radius speed_mult (duckx, ducky) gspeed fox =
-    let newang = atan2 ducky duckx // <=> atan (duckx / ducky)
-    let diff = newang - fox
+let updateFox radius speedMult (duckX, duckY) foxSpeed fox =
+    let newAngle = atan2 duckY duckX // <=> atan (duckx / ducky)
+    let diff = newAngle - fox
 
     let diff = diff + if diff < System.Math.PI then System.Math.PI * 2. else 0.
     let diff = diff - if diff > System.Math.PI then System.Math.PI * 2. else 0.
     let fox' =
-        if abs diff * radius <= gspeed * speed_mult then
-            newang
+        if abs diff * radius <= foxSpeed * speedMult then
+            newAngle
         else
             if diff > 0.0 then
-                fox + gspeed * speed_mult / radius
+                fox + foxSpeed * speedMult / radius
             else
-                fox - gspeed * speed_mult / radius
+                fox - foxSpeed * speedMult / radius
     let fox' = fox' + if fox' < System.Math.PI then System.Math.PI * 2. else 0.
     let fox' = fox' - if fox' > System.Math.PI then System.Math.PI * 2. else 0.
     fox'
 
 let test () =
-    let gspeeds = 3.5
+    let foxSpeeds = 3.5
     let width, height = 1024, 768
     let duckx, ducky = float width / 2., float height / 2.
     let radius = 300.0
-    let speed_mult = 3.0
+    let speedMult = 3.0
     let fox = 0.0
 
     fox
     |> Seq.unfold (fun fox ->
-        let x = updateFox radius speed_mult (duckx, ducky) gspeeds fox
+        let x = updateFox radius speedMult (duckx, ducky) foxSpeeds fox
         Some(x, x)
         )
     |> Seq.take 100
     |> List.ofSeq
 
 let moveDuck (x, y) =
-    let dx, dy = x - duckx, y - ducky
+    let dx, dy = x - duckX, y - duckY
     let mag = sqrt (dx*dx + dy*dy)
-    if mag <= bspeed * speed_mult then
-        duckx <- x
-        ducky <- y
+    if mag <= foxSpeed * speedMult then
+        duckX <- x
+        duckY <- y
     else
-        duckx <- duckx + bspeed * speed_mult * dx/mag
-        ducky <- ducky + bspeed * speed_mult * dy/mag
+        duckX <- duckX + foxSpeed * speedMult * dx/mag
+        duckY <- duckY + foxSpeed * speedMult * dy/mag
 
 open Browser
 open Browser.Dom
@@ -199,8 +199,8 @@ let start (duckImg:HTMLImageElement) (foxImg:HTMLImageElement) (canvas:HTMLCanva
             if Option.isSome gameOver then
                 if isMouseButtonDown then
                     restart()
-            elif duckx*duckx + ducky*ducky > radius*radius then
-                let diff = atan2 ducky duckx - fox
+            elif duckX*duckX + duckY*duckY > radius*radius then
+                let diff = atan2 duckY duckX - fox
                 let diff = diff + if diff < System.Math.PI then System.Math.PI * 2. else 0.
                 let diff = diff - if diff > System.Math.PI then System.Math.PI * 2. else 0.
 
@@ -210,7 +210,7 @@ let start (duckImg:HTMLImageElement) (foxImg:HTMLImageElement) (canvas:HTMLCanva
             else
                 if isMouseButtonDown then
                     moveDuck(mouseX - float width / 2., mouseY - float height / 2.)
-                fox <- updateFox radius speed_mult (duckx, ducky) gspeeds.[gspeed_ix] fox
+                fox <- updateFox radius speedMult (duckX, duckY) foxSpeeds.[foxSpeedIdx] fox
 
         Draw = fun () ->
             redraw duckSprite foxSprite ctx
