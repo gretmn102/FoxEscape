@@ -255,6 +255,7 @@ let containerBox (state : State) (dispatch : Msg -> unit) =
                         ]
 
                         Checkradio.checkbox [
+                            Checkradio.Checked state.IsRounded
                             Checkradio.Id description
                             Checkradio.OnChange (fun v ->
                                 v.Checked
