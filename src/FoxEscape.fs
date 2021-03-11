@@ -50,7 +50,7 @@ let clear (ctx:CanvasRenderingContext2D) =
     // ctx
     // |> CanvasRenderingContext2DExt.circle (float width/2., float height/2.) (radius*radius_mult) 1. (Some(rgb (200uy, 200uy, 200uy))) None
 
-let maxSpriteSize = 60.
+let mutable maxSpriteSize = 60.
 
 open Browser
 open Browser.Dom
@@ -88,19 +88,33 @@ let makeSprite isRounded (img:HTMLImageElement) =
 
     sprite
 
+type T =
+    {
+        Sprite: HTMLCanvasElement
+        IsRounded: bool
+        Img: HTMLImageElement
+    }
+let makeSprite2 isRounded image =
+    {
+        Sprite = makeSprite isRounded image
+        IsRounded = isRounded
+        Img = image
+    }
 
 let mutable duckSprite = None
 let updateDuckSprite isRounded duckImage =
-    duckSprite <- Some (makeSprite isRounded duckImage)
+    duckSprite <- Some (makeSprite2 isRounded duckImage)
+
 let mutable foxSprite = None
 let updateFoxSprite isRounded foxImage =
-    foxSprite <- Some (makeSprite isRounded foxImage)
+    foxSprite <- Some (makeSprite2 isRounded foxImage)
 
 let redraw ctx =
     clear ctx
 
     match duckSprite with
     | Some duckSprite ->
+        let duckSprite = duckSprite.Sprite
         ctx.drawImage(U3.Case2 duckSprite,
                       float width/2. + duckX - duckSprite.width / 2.,
                       float height/2. + duckY - duckSprite.height / 2.)
@@ -116,6 +130,7 @@ let redraw ctx =
 
     match foxSprite with
     | Some foxSprite ->
+        let foxSprite = foxSprite.Sprite
         ctx.drawImage(U3.Case2 foxSprite,
                       float width/2. + radius * cos fox - foxSprite.width / 2.,
                       float height/2. + radius * sin fox - foxSprite.height / 2.)
@@ -131,7 +146,7 @@ let redraw ctx =
 
     match gameOver with
     | Some isWin ->
-        ctx.font <- "bold 48px serif"
+        ctx.font <- sprintf "bold %dpx serif" (int (float width * 48. / 520.))
         let centerX, centerY = float width / 2., float height / 2.
 
         if isWin then
@@ -207,15 +222,28 @@ let moveDuck (x, y) =
         duckX <- duckX + duckSpeed * speedMult * dx/mag
         duckY <- duckY + duckSpeed * speedMult * dy/mag
 
+let updateSize width' height' =
+    width <- int width'
+    height <- int height'
+    // 60.              520.
+    // maxSpriteSize    size
+    maxSpriteSize <- width' * 60. / 520.
+    radius <-
+        if width' > height' then
+            width' / 2. - (maxSpriteSize / 2.)
+        else
+            height' / 2. - (maxSpriteSize / 2.)
+    let f =
+        Option.map (fun x ->
+            { x with
+                Sprite = makeSprite x.IsRounded x.Img
+            }
+        )
+    foxSprite <- f foxSprite
+    duckSprite <- f duckSprite
 
 let start (canvas:HTMLCanvasElement) =
-    width <- int canvas.width
-    height <- int canvas.height
-    radius <-
-        if canvas.width > canvas.height then
-            float canvas.width / 2. - (maxSpriteSize / 2.)
-        else
-            float canvas.height / 2. - (maxSpriteSize / 2.)
+    updateSize canvas.width canvas.height
 
     let ctx = canvas.getContext_2d()
     let mutable mouseX, mouseY = 0., 0.

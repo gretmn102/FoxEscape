@@ -152,21 +152,41 @@ let containerBox (state : State) (dispatch : Msg -> unit) =
         | None -> ()
 
         Columns.columns [] [
+            let canvasParentId = "canvasParentId"
             Column.column [
+
+                Column.Props [
+                    Style [
+                        Display DisplayOptions.Flex
+                        JustifyContent "center"
+                    ]
+                    Id canvasParentId
+                ]
             ] [
+                do
+                    window.innerWidth |> printfn "%A"
                 Html.canvas [
                     prop.style [
                         Feliz.style.border(1, borderStyle.solid, "gray")
                     ]
-                    let w, h = 556 - 10, 556 - 10 //264 - 10
-                    prop.width w
-                    prop.height h
 
                     prop.tabIndex -1
                     prop.ref (fun canvas ->
                         if isNull canvas then ()
                         else
                             let canvas = canvas :?> Types.HTMLCanvasElement
+                            let updateSize () =
+                                match document.getElementById canvasParentId with
+                                | null -> ()
+                                | x ->
+                                    let w = x.offsetWidth - 50.
+                                    canvas.width <- w
+                                    canvas.height <- w
+                                    FoxEscape.updateSize w w
+                            updateSize ()
+
+                            window.onresize <- fun x ->
+                                updateSize ()
 
                             let x = FoxEscape.start canvas
                             mainloop.setUpdate (fun _ -> x.Update ()) |> ignore
