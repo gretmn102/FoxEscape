@@ -220,7 +220,19 @@ let start (canvas:HTMLCanvasElement) =
     let ctx = canvas.getContext_2d()
     let mutable mouseX, mouseY = 0., 0.
     let mutable isMouseButtonDown = false
-    // TODO: canvas.ontouchmove
+
+    canvas.ontouchmove <- fun e ->
+        let rect = canvas.getBoundingClientRect();
+        let cssX = e.touches.[0].clientX - rect.left
+        let cssY = e.touches.[0].clientY - rect.top
+        let pixelX = cssX * canvas.width  / rect.width
+        let pixelY = cssY * canvas.height / rect.height
+        mouseX <- pixelX; mouseY <- pixelY
+    canvas.ontouchstart <- fun _ ->
+        isMouseButtonDown <- true
+    canvas.ontouchend <-
+        fun _ -> isMouseButtonDown <- false
+
     canvas.onmousemove <- fun e ->
         mouseX <- e.offsetX; mouseY <- e.offsetY
 
