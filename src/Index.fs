@@ -118,46 +118,44 @@ let containerBox (state : State) (dispatch : Msg -> unit) =
         Columns.columns [] [
             Column.column [
             ] [
-                match state.FoxImgState.Img with
-                | Resolved (Ok foxSprite) ->
+                let duckSprite =
                     match state.DuckImgState.Img with
                     | Resolved (Ok duckSprite) ->
-                        Html.canvas [
-                            prop.style [
-                                Feliz.style.border(1, borderStyle.solid, "red")
-                            ]
-                            let w, h = 556 - 10, 264 - 10
-                            prop.width w
-                            prop.height h
+                        Some duckSprite
+                    | _ -> None
 
-                            prop.tabIndex -1
-                            prop.ref (fun canvas ->
-                                if isNull canvas then ()
-                                else
-                                    let canvas = canvas :?> Types.HTMLCanvasElement
+                let foxSprite =
+                    match state.FoxImgState.Img with
+                    | Resolved (Ok foxSprite) ->
+                        Some foxSprite
+                    | _ -> None
 
-                                    let x = FoxEscape.start duckSprite foxSprite canvas
-                                    mainloop.setUpdate (fun _ -> x.Update ()) |> ignore
-                                    mainloop.setDraw (fun _ -> x.Draw ()) |> ignore
-                                    mainloop.setEnd (fun fps panic ->
-                                        // TODO: fpsCounter.textContent <- sprintf "%A FPS" (round fps)
-                                        if panic then
-                                            let discardedTime = round(mainloop.resetFrameDelta())
-                                            printfn "Main loop panicked, probably because the browser tab was put in the background. Discarding %A ms" discardedTime
-                                    ) |> ignore
-                                    mainloop.start () |> ignore
-                            )
-                        ]
-                    | HasNotStartedYet ->
-                        Html.div [str "Set the source for the duck image"]
-                    | InProgress -> spinner
-                    | Resolved (Error ()) ->
-                        Html.div [str "Error with duck image"]
-                | HasNotStartedYet ->
-                    Html.div [str "Set the source for the fox image"]
-                | InProgress -> spinner
-                | Resolved (Error ()) ->
-                    Html.div [str "Error with fox image"]
+                Html.canvas [
+                    prop.style [
+                        Feliz.style.border(1, borderStyle.solid, "red")
+                    ]
+                    let w, h = 556 - 10, 264 - 10
+                    prop.width w
+                    prop.height h
+
+                    prop.tabIndex -1
+                    prop.ref (fun canvas ->
+                        if isNull canvas then ()
+                        else
+                            let canvas = canvas :?> Types.HTMLCanvasElement
+
+                            let x = FoxEscape.start duckSprite foxSprite canvas
+                            mainloop.setUpdate (fun _ -> x.Update ()) |> ignore
+                            mainloop.setDraw (fun _ -> x.Draw ()) |> ignore
+                            mainloop.setEnd (fun fps panic ->
+                                // TODO: fpsCounter.textContent <- sprintf "%A FPS" (round fps)
+                                if panic then
+                                    let discardedTime = round(mainloop.resetFrameDelta())
+                                    printfn "Main loop panicked, probably because the browser tab was put in the background. Discarding %A ms" discardedTime
+                            ) |> ignore
+                            mainloop.start () |> ignore
+                    )
+                ]
             ]
             Column.column [
             ] [

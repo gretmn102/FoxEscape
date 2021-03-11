@@ -50,33 +50,39 @@ let clear (ctx:CanvasRenderingContext2D) =
     // ctx
     // |> CanvasRenderingContext2D.circle (float width/2., float height/2.) (radius*radius_mult) 1. (Some(rgb (200uy, 200uy, 200uy))) None
 
-let redraw (duckSprite:HTMLCanvasElement) (foxSprite:HTMLCanvasElement) ctx =
+let maxSpriteSize = 80.
+let redraw (duckSprite:HTMLCanvasElement option) (foxSprite:HTMLCanvasElement option) ctx =
     clear ctx
 
-    ctx.drawImage(U3.Case2 duckSprite,
-                  float width/2. + duckX - duckSprite.width / 2.,
-                  float height/2. + duckY - duckSprite.height / 2.)
+    match duckSprite with
+    | Some duckSprite ->
+        ctx.drawImage(U3.Case2 duckSprite,
+                      float width/2. + duckX - duckSprite.width / 2.,
+                      float height/2. + duckY - duckSprite.height / 2.)
+    | None ->
+        let duckr = maxSpriteSize / 2.
+        ctx
+        |> CanvasRenderingContext2D.circle
+            (float width/2. + duckX, float height/2. + duckY)
+            duckr
+            1.
+            (Some (U3.Case1 "gray"))
+            None
 
-    ctx.drawImage(U3.Case2 foxSprite,
-                  float width/2. + radius * cos fox - foxSprite.width / 2.,
-                  float height/2. + radius * sin fox - foxSprite.height / 2.)
-
-    // let duckr = 6.
-    // let foxr = 6.
-    // ctx
-    // |> CanvasRenderingContext2D.circle
-    //     (float width/2. + duckx, float height/2. + ducky)
-    //     duckr
-    //     1.
-    //     (Some (U3.Case1 "black"))
-    //     None
-    // ctx
-    // |> CanvasRenderingContext2D.circle
-    //     (float width/2. + radius * cos fox, float height/2. + radius * sin fox)
-    //     foxr
-    //     1.
-    //     (Some (U3.Case1 "red"))
-    //     None
+    match foxSprite with
+    | Some foxSprite ->
+        ctx.drawImage(U3.Case2 foxSprite,
+                      float width/2. + radius * cos fox - foxSprite.width / 2.,
+                      float height/2. + radius * sin fox - foxSprite.height / 2.)
+    | None ->
+        let foxr = maxSpriteSize / 2.
+        ctx
+        |> CanvasRenderingContext2D.circle
+            (float width/2. + radius * cos fox, float height/2. + radius * sin fox)
+            foxr
+            1.
+            (Some (U3.Case1 "red"))
+            None
 
     match gameOver with
     | Some isWin ->
@@ -159,8 +165,8 @@ let moveDuck (x, y) =
 
 open Browser
 open Browser.Dom
-let maxSpriteSize = 80.
-let start (duckImg:HTMLImageElement) (foxImg:HTMLImageElement) (canvas:HTMLCanvasElement) =
+
+let start (duckImg:HTMLImageElement option) (foxImg:HTMLImageElement option) (canvas:HTMLCanvasElement) =
     canvas.width <- float width
     canvas.height <- float height
 
@@ -191,8 +197,8 @@ let start (duckImg:HTMLImageElement) (foxImg:HTMLImageElement) (canvas:HTMLCanva
 
         sprite
 
-    let duckSprite = f duckImg
-    let foxSprite = f foxImg
+    let duckSprite = Option.map f duckImg
+    let foxSprite = Option.map f foxImg
 
     {|
         Update = fun () ->
