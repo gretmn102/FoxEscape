@@ -25,7 +25,9 @@ type State =
     {
         FoxImgState: ImgState
         DuckImgState: ImgState
+        GameOver: {| GameResult:bool option |} option
     }
+
 type Msg =
     | UpdateFoxState of Img
     | UpdateDuckState of Img
@@ -33,6 +35,8 @@ type Msg =
     | SetDuckRounded of bool
     | SetFoxImgState of ImgState
     | SetDuckImgState of ImgState
+    | GameOver of bool option
+    | SetGameOverModal of bool
 
 let init () =
     let imgStateEmpty =
@@ -46,6 +50,7 @@ let init () =
         {
             FoxImgState = imgStateEmpty
             DuckImgState = imgStateEmpty
+            GameOver = None
         }
     state, Cmd.none
 
@@ -106,6 +111,26 @@ let update (msg: Msg) (state: State) =
             { state with
                 DuckImgState = img }
         state, Cmd.none
+    | GameOver x ->
+        let state =
+            { state with
+                GameOver =
+                    state.GameOver
+                    |> Option.map (fun g ->
+                        {| g with GameResult = x |}) }
+        state, Cmd.none
+    | SetGameOverModal res ->
+        let state =
+            { state with
+                GameOver =
+                    if res then
+                        match state.GameOver with
+                        | None -> Some {| GameResult = None |}
+                        | Some _ -> state.GameOver
+                    else
+                        None
+            }
+        state, Cmd.none
 
 open Fable.React
 open Fable.React.Props
@@ -163,43 +188,84 @@ let containerBox (state : State) (dispatch : Msg -> unit) =
                     Id canvasParentId
                 ]
             ] [
-                do
-                    window.innerWidth |> printfn "%A"
-                Html.canvas [
-                    prop.style [
-                        Feliz.style.border(1, borderStyle.solid, "gray")
-                    ]
+                let gameRender () =
+                    Html.canvas [
+                        prop.style [
+                            Feliz.style.border(1, borderStyle.solid, "gray")
+                        ]
 
-                    prop.tabIndex -1
-                    prop.ref (fun canvas ->
-                        if isNull canvas then ()
-                        else
-                            let canvas = canvas :?> Types.HTMLCanvasElement
-                            let updateSize () =
-                                match document.getElementById canvasParentId with
-                                | null -> ()
-                                | x ->
-                                    let w = x.offsetWidth - 50.
-                                    canvas.width <- w
-                                    canvas.height <- w
-                                    FoxEscape.updateSize w w
-                            updateSize ()
-
-                            window.onresize <- fun x ->
+                        prop.tabIndex -1
+                        prop.ref (fun canvas ->
+                            if isNull canvas then ()
+                            else
+                                let canvas = canvas :?> Types.HTMLCanvasElement
+                                let updateSize () =
+                                    match document.getElementById canvasParentId with
+                                    | null -> ()
+                                    | x ->
+                                        let w = x.offsetWidth - 50.
+                                        canvas.width <- w
+                                        canvas.height <- w
+                                        FoxEscape.updateSize w w
                                 updateSize ()
 
-                            let x = FoxEscape.start canvas
-                            mainloop.setUpdate (fun _ -> x.Update ()) |> ignore
-                            mainloop.setDraw (fun _ -> x.Draw ()) |> ignore
-                            mainloop.setEnd (fun fps panic ->
-                                // TODO: fpsCounter.textContent <- sprintf "%A FPS" (round fps)
-                                if panic then
-                                    let discardedTime = round(mainloop.resetFrameDelta())
-                                    printfn "Main loop panicked, probably because the browser tab was put in the background. Discarding %A ms" discardedTime
-                            ) |> ignore
+                                window.onresize <- fun x ->
+                                    updateSize ()
+
+                                let x =
+                                    FoxEscape.start canvas (fun isWin ->
+                                        dispatch (GameOver (Some isWin))
+                                    )
+                                mainloop.setUpdate (fun _ -> x.Update ()) |> ignore
+                                mainloop.setDraw (fun _ -> x.Draw ()) |> ignore
+                                mainloop.setEnd (fun fps panic ->
+                                    // TODO: fpsCounter.textContent <- sprintf "%A FPS" (round fps)
+                                    if panic then
+                                        let discardedTime = round(mainloop.resetFrameDelta())
+                                        printfn "Main loop panicked, probably because the browser tab was put in the background. Discarding %A ms" discardedTime
+                                ) |> ignore
+                                mainloop.start () |> ignore
+                        )
+                    ]
+
+                match state.GameOver with
+                | Some isWin ->
+                    match isWin.GameResult with
+                    | Some isWin ->
+                        mainloop.stop () |> ignore
+                        let close str =
+                            // printfn str
                             mainloop.start () |> ignore
-                    )
-                ]
+                            dispatch (GameOver None)
+                        Modal.modal [
+                            Modal.IsActive true
+                        ] [
+                            Modal.background [
+                                Props [
+                                    OnClick (fun e ->
+                                        close "background"
+                                    )
+                                ]
+                            ] []
+                            Modal.content [] [
+                                Box.box' [] [
+                                    if isWin then
+                                        "Escaped!"
+                                    else
+                                        "You Were Eaten"
+                                    |> Html.text
+                                ]
+                            ]
+                            Modal.close [
+                                Modal.Close.OnClick (fun e ->
+                                    close "button close"
+                                )
+                            ] []
+                        ]
+                    | None -> ()
+                | None -> ()
+
+                gameRender ()
             ]
             Column.column [
             ] [
@@ -268,6 +334,18 @@ let containerBox (state : State) (dispatch : Msg -> unit) =
                     ]
                 f "Url for the fox image" state.FoxImgState SetFoxImgState SetFoxRounded
                 f "Url for the duck image" state.DuckImgState SetDuckImgState SetDuckRounded
+
+                Checkradio.checkbox [
+                    Checkradio.Checked (Option.isSome state.GameOver)
+                    Checkradio.Id "gameOverModal"
+                    Checkradio.OnChange (fun v ->
+                        v.Checked
+                        |> SetGameOverModal
+                        |> dispatch
+                    )
+                ] [
+                    str "Game over modal window"
+                ]
             ]
         ]
     ]

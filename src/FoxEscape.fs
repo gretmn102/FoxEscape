@@ -242,7 +242,7 @@ let updateSize width' height' =
     foxSprite <- f foxSprite
     duckSprite <- f duckSprite
 
-let start (canvas:HTMLCanvasElement) =
+let start (canvas:HTMLCanvasElement) gameOverEvent =
     updateSize canvas.width canvas.height
 
     let ctx = canvas.getContext_2d()
@@ -268,7 +268,7 @@ let start (canvas:HTMLCanvasElement) =
     canvas.onmouseup <- fun _ -> isMouseButtonDown <- false
 
     {|
-        Update = fun () ->
+        Update = fun delta ->
             if Option.isSome gameOver then
                 if isMouseButtonDown then
                     restart()
@@ -277,9 +277,11 @@ let start (canvas:HTMLCanvasElement) =
                 let diff = diff + if diff < System.Math.PI then System.Math.PI * 2. else 0.
                 let diff = diff - if diff > System.Math.PI then System.Math.PI * 2. else 0.
 
-                let is_win = abs(diff) > 0.000001
-                gameOver <- Some is_win
+                let isWin = abs diff > 0.000001
+                gameOver <- Some isWin
                 isMouseButtonDown <- false
+
+                gameOverEvent isWin
             else
                 if isMouseButtonDown then
                     moveDuck(mouseX - float width / 2., mouseY - float height / 2.)
