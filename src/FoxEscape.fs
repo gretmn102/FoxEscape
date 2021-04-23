@@ -109,6 +109,17 @@ let mutable foxSprite = None
 let updateFoxSprite isRounded foxImage =
     foxSprite <- Some (makeSprite2 isRounded foxImage)
 
+let mutable m_winMsg =
+    {|
+        Color = "grey"
+        Msg = "Escaped!"
+    |}
+let mutable m_LoseMsg =
+    {|
+        Color = "red"
+        Msg = "You Were Eaten"
+    |}
+
 let redraw ctx =
     clear ctx
 
@@ -150,13 +161,13 @@ let redraw ctx =
         let centerX, centerY = float width / 2., float height / 2.
 
         if isWin then
-            ctx.fillStyle <- U3.Case1 "grey"
-            let str = "Escaped!"
+            ctx.fillStyle <- U3.Case1 m_winMsg.Color
+            let str = m_winMsg.Msg
             let m = ctx.measureText str
             ctx.fillText(str, centerX - m.width / 2.0, centerY)
         else
-            let str = "You Were Eaten"
-            ctx.fillStyle <- U3.Case1 "red"
+            ctx.fillStyle <- U3.Case1 m_LoseMsg.Color
+            let str = m_LoseMsg.Msg
             let m = ctx.measureText str
             ctx.fillText(str, centerX - m.width / 2.0, centerY)
     | None -> ()
