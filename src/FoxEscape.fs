@@ -6,10 +6,9 @@ let mutable radius = 300.0
 let mutable fox = 0.0
 let mutable duckX = 0.1
 let mutable duckY = 0.0
-let duckSpeed = 1.0
-let foxSpeeds = [3.5; 4.0; 4.2; 4.4; 4.6]
-let foxSpeedIdx = 1
-let speedMult = 3.0
+let mutable duckSpeed = 1.0
+let mutable foxSpeed = 4.0
+let mutable speedMult = 0.20
 
 type IsWin = bool
 let mutable gameOver : IsWin option = None
@@ -41,14 +40,15 @@ module CanvasRenderingContext2DExt =
 open Fable.Core
 let rgb (r:byte, g:byte, b:byte) = U3.Case1 (sprintf "rgb(%d, %d, %d)" r g b)
 let clear (ctx:CanvasRenderingContext2D) =
-    let radius_mult = duckSpeed / foxSpeeds.[foxSpeedIdx]
-
     ctx.clearRect(0., 0., float width, float height);
+
+    // let radius_mult = duckSpeed / foxSpeed
+    // ctx
+    // |> CanvasRenderingContext2DExt.circle (float width/2., float height/2.) (radius*radius_mult) 1. (Some(rgb (200uy, 200uy, 200uy))) None
 
     ctx
     |> CanvasRenderingContext2DExt.circle (float width/2., float height/2.) (radius * 1.0) 0. (Some (U3.Case1 "green")) None
-    // ctx
-    // |> CanvasRenderingContext2DExt.circle (float width/2., float height/2.) (radius*radius_mult) 1. (Some(rgb (200uy, 200uy, 200uy))) None
+
 
 let mutable maxSpriteSize = 60.
 
@@ -178,20 +178,20 @@ let redraw ctx =
 // Дает одно единственное решение: `t = [arctan(a__x/a__y)]`!
 // Отлично, что дальше?
 
-let updateFox radius speedMult (duckX, duckY) foxSpeed fox =
+let updateFox radius (duckX, duckY) foxSpeed fox delta =
     let newAngle = atan2 duckY duckX // <=> atan (duckx / ducky)
     let diff = newAngle - fox
 
     let diff = diff + if diff < System.Math.PI then System.Math.PI * 2. else 0.
     let diff = diff - if diff > System.Math.PI then System.Math.PI * 2. else 0.
     let fox' =
-        if abs diff * radius <= foxSpeed * speedMult then
+        if abs diff * radius <= foxSpeed * delta then
             newAngle
         else
             if diff > 0.0 then
-                fox + foxSpeed * speedMult / radius
+                fox + foxSpeed * delta / radius
             else
-                fox - foxSpeed * speedMult / radius
+                fox - foxSpeed * delta / radius
     let fox' = fox' + if fox' < System.Math.PI then System.Math.PI * 2. else 0.
     let fox' = fox' - if fox' > System.Math.PI then System.Math.PI * 2. else 0.
     fox'
@@ -206,13 +206,13 @@ let test () =
 
     fox
     |> Seq.unfold (fun fox ->
-        let x = updateFox radius speedMult (duckx, ducky) foxSpeeds fox
+        let x = updateFox radius (duckx, ducky) foxSpeeds fox speedMult
         Some(x, x)
         )
     |> Seq.take 100
     |> List.ofSeq
 
-let moveDuck (x, y) =
+let moveDuck (x, y) speedMult =
     let dx, dy = x - duckX, y - duckY
     let mag = sqrt (dx*dx + dy*dy)
     if mag <= duckSpeed * speedMult then
@@ -269,6 +269,7 @@ let start (canvas:HTMLCanvasElement) gameOverEvent =
 
     {|
         Update = fun delta ->
+            let delta = delta * speedMult
             if Option.isSome gameOver then
                 if isMouseButtonDown then
                     restart()
@@ -284,8 +285,8 @@ let start (canvas:HTMLCanvasElement) gameOverEvent =
                 gameOverEvent isWin
             else
                 if isMouseButtonDown then
-                    moveDuck(mouseX - float width / 2., mouseY - float height / 2.)
-                fox <- updateFox radius speedMult (duckX, duckY) foxSpeeds.[foxSpeedIdx] fox
+                    moveDuck (mouseX - float width / 2., mouseY - float height / 2.) delta
+                fox <- updateFox radius (duckX, duckY) foxSpeed fox delta
 
         Draw = fun () ->
             redraw ctx

@@ -216,7 +216,7 @@ let containerBox (state : State) (dispatch : Msg -> unit) =
                                     FoxEscape.start canvas (fun isWin ->
                                         dispatch (GameOver (Some isWin))
                                     )
-                                mainloop.setUpdate (fun _ -> x.Update ()) |> ignore
+                                mainloop.setUpdate (fun delta -> x.Update delta) |> ignore
                                 mainloop.setDraw (fun _ -> x.Draw ()) |> ignore
                                 mainloop.setEnd (fun fps panic ->
                                     // TODO: fpsCounter.textContent <- sprintf "%A FPS" (round fps)
